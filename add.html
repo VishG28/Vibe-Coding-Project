@@ -19,6 +19,14 @@
   <h1>Add a Chipotle</h1>
   <p>Search by ZIP code to find Chipotle locations near you and add your report.</p>
   <input type="text" id="zip" placeholder="ZIP code">
+  <label for="radius">Radius:</label>
+  <select id="radius" onchange="toggleCustom()">
+    <option value="5">5 miles</option>
+    <option value="10">10 miles</option>
+    <option value="15">15 miles</option>
+    <option value="custom">Custom</option>
+  </select>
+  <input type="number" id="customRadius" placeholder="Miles" style="display:none; width:6em;">
   <button onclick="search()">Search</button>
 
   <div id="results"></div>
@@ -31,16 +39,55 @@
     }
     loadData();
 
-    function search() {
+    function toggleCustom() {
+      const select = document.getElementById('radius');
+      const custom = document.getElementById('customRadius');
+      custom.style.display = select.value === 'custom' ? 'inline' : 'none';
+    }
+
+    function getRadius() {
+      const select = document.getElementById('radius');
+      if (select.value === 'custom') {
+        const val = parseFloat(document.getElementById('customRadius').value);
+        return isNaN(val) || val <= 0 ? 5 : val;
+      }
+      return parseFloat(select.value);
+    }
+
+    async function search() {
       const zip = document.getElementById('zip').value.trim();
       const container = document.getElementById('results');
       container.innerHTML = '';
-      const matches = locations.filter(l => l.zip === zip);
-      if (matches.length === 0) {
-        container.textContent = 'No Chipotle locations found for that ZIP code.';
+
+      if (!zip) {
+        container.textContent = 'Please enter a ZIP code.';
         return;
       }
-      matches.forEach(loc => {
+
+      let center;
+      try {
+        const resp = await fetch(`https://api.zippopotam.us/us/${zip}`);
+        if (!resp.ok) throw new Error('bad response');
+        const data = await resp.json();
+        const place = data.places[0];
+        center = { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude) };
+      } catch (e) {
+        container.textContent = 'Could not locate that ZIP code.';
+        return;
+      }
+
+      const radius = getRadius();
+      const results = locations.filter(l => {
+        const d = distance(center.lat, center.lng, l.lat, l.lng);
+        return d <= radius;
+      });
+
+      if (results.length === 0) {
+        container.textContent = 'No Chipotle locations found within ' + radius + ' miles.';
+        return;
+      }
+
+      results.forEach(loc => {
         const div = document.createElement('div');
         div.className = 'location';
         div.textContent = loc.address + ' (ZIP ' + loc.zip + ')';
@@ -50,6 +97,18 @@
         div.appendChild(btn);
         container.appendChild(div);
       });
+    }
+
+    function distance(lat1, lon1, lat2, lon2) {
+      const toRad = deg => deg * Math.PI / 180;
+      const R = 3958.8; // Earth radius in miles
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
     }
 
     function saveReport(loc) {
