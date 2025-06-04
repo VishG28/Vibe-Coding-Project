@@ -54,6 +54,21 @@
       return parseFloat(select.value);
     }
 
+    async function fetchLiveChipotles(lat, lng, radiusMiles) {
+      const km = radiusMiles * 1.60934;
+      const query = `[out:json];node["name"~"Chipotle"](around:${Math.round(km * 1000)},${lat},${lng});out;`;
+      const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('Overpass error');
+      const data = await resp.json();
+      return data.elements.map(el => ({
+        name: el.tags.name || 'Chipotle Mexican Grill',
+        address: [el.tags['addr:housenumber'], el.tags['addr:street'], el.tags['addr:city'], el.tags['addr:state']].filter(Boolean).join(' '),
+        lat: el.lat,
+        lng: el.lon
+      }));
+    }
+
     async function search() {
       const zip = document.getElementById('zip').value.trim();
       const container = document.getElementById('results');
@@ -77,10 +92,16 @@
       }
 
       const radius = getRadius();
-      const results = locations.filter(l => {
-        const d = distance(center.lat, center.lng, l.lat, l.lng);
-        return d <= radius;
-      });
+      let results = [];
+      try {
+        results = await fetchLiveChipotles(center.lat, center.lng, radius);
+      } catch (e) {
+        // fall back to bundled data
+        results = locations.filter(l => {
+          const d = distance(center.lat, center.lng, l.lat, l.lng);
+          return d <= radius;
+        });
+      }
 
       if (results.length === 0) {
         container.textContent = 'No Chipotle locations found within ' + radius + ' miles.';
@@ -90,7 +111,9 @@
       results.forEach(loc => {
         const div = document.createElement('div');
         div.className = 'location';
-        div.textContent = loc.address + ' (ZIP ' + loc.zip + ')';
+        let label = loc.address ? `${loc.name} - ${loc.address}` : loc.name;
+        if (loc.zip) label += ' (ZIP ' + loc.zip + ')';
+        div.textContent = label;
         const btn = document.createElement('button');
         btn.textContent = 'Report Skimp';
         btn.onclick = () => saveReport(loc);
