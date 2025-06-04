@@ -33,5 +33,26 @@
     "zip": "60640",
     "lat": 41.977,
     "lng": -87.668
+  },
+  {
+    "name": "Chipotle Mexican Grill",
+    "address": "1370 Trancas St, Napa, CA",
+    "zip": "94558",
+    "lat": 38.309,
+    "lng": -122.297
+  },
+  {
+    "name": "Chipotle Mexican Grill",
+    "address": "865 Market St, San Francisco, CA",
+    "zip": "94103",
+    "lat": 37.784,
+    "lng": -122.407
+  },
+  {
+    "name": "Chipotle Mexican Grill",
+    "address": "1100 S Hayes St, Arlington, VA",
+    "zip": "22202",
+    "lat": 38.862,
+    "lng": -77.060
   }
 ]
