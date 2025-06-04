@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skimp Maps - Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #map { height: 90vh; }
+    nav { padding: 1rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="add.html">Add a Report</a>
+  </nav>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    async function init() {
+      const map = L.map('map').setView([39.5, -98.35], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      const response = await fetch('chipotle_locations.json');
+      const locations = await response.json();
+      locations.forEach(loc => {
+        const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+        marker.bindPopup(`<b>${loc.name}</b><br>${loc.address}<br>ZIP: ${loc.zip}`);
+      });
+    }
+    init();
+  </script>
+</body>
+</html>
