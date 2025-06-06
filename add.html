@@ -17,39 +17,79 @@
     <a href="map.html">View Map</a>
   </nav>
   <h1>Add a Chipotle</h1>
-  <p>Search by ZIP code to find Chipotle locations near you and add your report.</p>
+  <p>Search by ZIP code and radius (miles) to find Chipotle locations near you and add your report.</p>
   <input type="text" id="zip" placeholder="ZIP code">
+  <input type="number" id="radius" placeholder="Radius" value="5" style="width:6rem;">
   <button onclick="search()">Search</button>
 
   <div id="results"></div>
 
   <script>
     let locations = [];
+    const zipCache = {};
     async function loadData() {
       const response = await fetch('chipotle_locations.json');
       locations = await response.json();
     }
     loadData();
 
-    function search() {
+    async function search() {
       const zip = document.getElementById('zip').value.trim();
+      const radius = parseFloat(document.getElementById('radius').value) || 5;
       const container = document.getElementById('results');
-      container.innerHTML = '';
-      const matches = locations.filter(l => l.zip === zip);
-      if (matches.length === 0) {
-        container.textContent = 'No Chipotle locations found for that ZIP code.';
+      container.textContent = 'Searching...';
+      if (!zip) {
+        container.textContent = 'Please enter a ZIP code.';
         return;
       }
-      matches.forEach(loc => {
-        const div = document.createElement('div');
-        div.className = 'location';
-        div.textContent = loc.address + ' (ZIP ' + loc.zip + ')';
-        const btn = document.createElement('button');
-        btn.textContent = 'Report Skimp';
-        btn.onclick = () => saveReport(loc);
-        div.appendChild(btn);
-        container.appendChild(div);
-      });
+      try {
+        let lat, lng;
+        if (zipCache[zip]) {
+          ({ lat, lng } = zipCache[zip]);
+        } else {
+          const resp = await fetch(`https://api.zippopotam.us/us/${zip}`);
+          if (!resp.ok) throw new Error('ZIP not found');
+          const data = await resp.json();
+          lat = parseFloat(data.places[0].latitude);
+          lng = parseFloat(data.places[0].longitude);
+          zipCache[zip] = { lat, lng };
+        }
+
+        const matches = locations.filter(loc => {
+          const d = haversine(lat, lng, loc.lat, loc.lng);
+          return d <= radius;
+        });
+
+        container.innerHTML = '';
+        if (matches.length === 0) {
+          container.textContent = `No Chipotle locations found within ${radius} miles.`;
+          return;
+        }
+        matches.forEach(loc => {
+          const div = document.createElement('div');
+          div.className = 'location';
+          div.textContent = `${loc.address} (ZIP ${loc.zip})`;
+          const btn = document.createElement('button');
+          btn.textContent = 'Report Skimp';
+          btn.onclick = () => saveReport(loc);
+          div.appendChild(btn);
+          container.appendChild(div);
+        });
+      } catch (err) {
+        container.textContent = 'Error looking up that ZIP code.';
+      }
+    }
+
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 3958.8; // miles
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
     }
 
     function saveReport(loc) {
