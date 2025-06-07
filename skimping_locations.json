@@ -1,0 +1,29 @@
+[
+    {
+        "name": "Chipotle Mexican Grill",
+        "address": "123 Main St",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip": "90015",
+        "latitude": 34.0456,
+        "longitude": -118.2568
+    },
+    {
+        "name": "Chipotle Mexican Grill",
+        "address": "456 Market St",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105",
+        "latitude": 37.7890,
+        "longitude": -122.4015
+    },
+    {
+        "name": "Chipotle Mexican Grill",
+        "address": "789 Broadway",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10003",
+        "latitude": 40.7322,
+        "longitude": -73.9896
+    }
+]
