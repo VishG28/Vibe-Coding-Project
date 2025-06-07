@@ -1,83 +1,89 @@
-# scrape_chipotle_locations.py
 #!/usr/bin/env python3
+# geocode_chipotle.py
+# Reads all_sitemap_links.json, extracts address components from each URL,
+# geocodes via OpenStreetMap Nominatim HTTP API, and writes the results to geocoded_chipotle_locations.json
+
 import requests
 import json
 import time
-from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
-# Constants
-LINKS_FILE  = "all_sitemap_links.json"  # Input: list of store URLs
-OUTPUT_FILE = "chipotle_locations.json"  # Output: store details
-HEADERS     = {"User-Agent": "Mozilla/5.0"}
+# Configuration
+LINKS_FILE = "all_sitemap_links.json"           # Input: list of store URLs
+OUTPUT_FILE = "geocoded_chipotle_locations.json"  # Output: structured store data
+USER_AGENT = "chipotle_geocoder/1.0"
 
-# Extract the JSON-LD block for the store (Restaurant or LocalBusiness)
-def extract_store_data(soup):
-    for script in soup.select('script[type="application/ld+json"]'):
-        text = script.get_text(strip=True)
-        if not text:
-            continue
-        try:
-            obj = json.loads(text)
-        except json.JSONDecodeError:
-            continue
+# Parse the URL path into state, city, and street components
+# e.g. '/al/decatur/1109-beltline-rd-se' -> ('AL', 'Decatur', '1109 Beltline Rd Se')
+def parse_url(url):
+    path = urlparse(url).path.strip('/')
+    parts = path.split('/')
+    if len(parts) < 3:
+        return None
+    state = parts[0].upper()
+    city = parts[1].replace('-', ' ').title()
+    street = parts[2].replace('-', ' ').title()
+    return state, city, street
 
-        # If it's a list, search entries
-        candidates = []
-        if isinstance(obj, dict):
-            if '@graph' in obj and isinstance(obj['@graph'], list):
-                candidates = obj['@graph']
-            else:
-                candidates = [obj]
-        elif isinstance(obj, list):
-            candidates = obj
-
-        # Look for the correct type
-        for entry in candidates:
-            t = entry.get('@type') or entry.get('type')
-            if t in ('Restaurant', 'LocalBusiness'):
-                return entry
-    return None
-
-# Scrape a single store URL for its details
-def scrape_store(url):
-    resp = requests.get(url, headers=HEADERS)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, 'html.parser')
-
-    data = extract_store_data(soup)
-    if not data:
-        raise ValueError('No JSON-LD restaurant data found')
-
-    addr = data.get('address', {}) or {}
-    geo  = data.get('geo', {}) or {}
-
-    return {
-        "name":      data.get('name', ''),
-        "address":   addr.get('streetAddress', ''),
-        "city":      addr.get('addressLocality', ''),
-        "state":     addr.get('addressRegion', ''),
-        "zip":       addr.get('postalCode', ''),
-        "latitude":  geo.get('latitude'),
-        "longitude": geo.get('longitude')
+# Geocode an address string using Nominatim
+# Returns (latitude, longitude) or (None, None)
+def geocode_address(address):
+    endpoint = "https://nominatim.openstreetmap.org/search"
+    params = {
+        'q': address,
+        'format': 'json',
+        'limit': 1
     }
+    headers = {'User-Agent': USER_AGENT}
+    resp = requests.get(endpoint, params=params, headers=headers, timeout=10)
+    resp.raise_for_status()
+    results = resp.json()
+    if not results:
+        return None, None
+    lat = float(results[0]['lat'])
+    lon = float(results[0]['lon'])
+    return lat, lon
 
-# Main execution: load URLs, scrape each, and save
+# Main script
 if __name__ == '__main__':
-    # Load list of store URLs
+    # Load all store URLs
     with open(LINKS_FILE, 'r', encoding='utf-8') as f:
         urls = json.load(f)
 
-    locations = []
+    results = []
     for idx, url in enumerate(urls, 1):
-        try:
-            loc = scrape_store(url)
-            locations.append(loc)
-            print(f"[{idx}/{len(urls)}] Scraped: {url}")
-        except Exception as e:
-            print(f"Error ({idx}) {url}: {e}")
-        time.sleep(0.2)  # polite delay
+        parsed = parse_url(url)
+        if not parsed:
+            print(f"Skipping malformed URL: {url}")
+            continue
+        state, city, street = parsed
+        full_address = f"{street}, {city}, {state}, USA"
 
-    # Write output JSON
+        try:
+            lat, lon = geocode_address(full_address)
+        except Exception as e:
+            print(f"Geocode error for '{full_address}': {e}")
+            lat = lon = None
+
+        record = {
+            "name": "Chipotle Mexican Grill",
+            "address": street,
+            "city": city,
+            "state": state,
+            "zip": "",
+            "latitude": lat,
+            "longitude": lon,
+            "full_address": full_address
+        }
+        results.append(record)
+        print(f"[{idx}/{len(urls)}] {full_address} -> ({lat}, {lon})")
+        time.sleep(1)  # respect Nominatim rate limit
+
+    # Write output to a new file to avoid clobbering old data
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(locations, f, indent=2)
-    print(f"Saved {len(locations)} locations to {OUTPUT_FILE}")
+        json.dump(results, f, indent=2)
+
+    print(f"Saved {len(results)} geocoded records to '{OUTPUT_FILE}'")
+    # Show first few entries for verification
+    for rec in results[:5]:
+        print(rec)
