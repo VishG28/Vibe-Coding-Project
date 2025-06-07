@@ -1,58 +1,29 @@
 [
-  {
-    "name": "Chipotle Mexican Grill",
-    "address": "301 Massachusetts Ave, Boston, MA",
-    "zip": "02115",
-    "lat": 42.341,
-    "lng": -71.086
-  },
-  {
-    "name": "Chipotle Mexican Grill",
-    "address": "125 Summer St, Boston, MA",
-    "zip": "02110",
-    "lat": 42.353,
-    "lng": -71.057
-  },
-  {
-    "name": "Chipotle Mexican Grill",
-    "address": "1841 S Federal Hwy, Delray Beach, FL",
-    "zip": "33483",
-    "lat": 26.451,
-    "lng": -80.070
-  },
-  {
-    "name": "Chipotle Mexican Grill",
-    "address": "17 E 14th St, New York, NY",
-    "zip": "10003",
-    "lat": 40.735,
-    "lng": -73.993
-  },
-  {
-    "name": "Chipotle Mexican Grill",
-    "address": "5250 N Clark St, Chicago, IL",
-    "zip": "60640",
-    "lat": 41.977,
-    "lng": -87.668
-  },
-  {
-    "name": "Chipotle Mexican Grill",
-    "address": "1370 Trancas St, Napa, CA",
-    "zip": "94558",
-    "lat": 38.309,
-    "lng": -122.297
-  },
-  {
-    "name": "Chipotle Mexican Grill",
-    "address": "865 Market St, San Francisco, CA",
-    "zip": "94103",
-    "lat": 37.784,
-    "lng": -122.407
-  },
-  {
-    "name": "Chipotle Mexican Grill",
-    "address": "1100 S Hayes St, Arlington, VA",
-    "zip": "22202",
-    "lat": 38.862,
-    "lng": -77.060
-  }
+    {
+        "name": "Chipotle Mexican Grill",
+        "address": "123 Main St",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip": "90015",
+        "latitude": 34.0456,
+        "longitude": -118.2568
+    },
+    {
+        "name": "Chipotle Mexican Grill",
+        "address": "456 Market St",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105",
+        "latitude": 37.7890,
+        "longitude": -122.4015
+    },
+    {
+        "name": "Chipotle Mexican Grill",
+        "address": "789 Broadway",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10003",
+        "latitude": 40.7322,
+        "longitude": -73.9896
+    }
 ]
